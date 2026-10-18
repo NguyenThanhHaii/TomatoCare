@@ -218,3 +218,13 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# TomatoCare training artifacts (keep model weights and datasets out of Git)
+*.pth
+*.pth.tmp
+*.pt
+*.ckpt
+*.safetensors
+/kaggle/
+/outputs/
+/data/

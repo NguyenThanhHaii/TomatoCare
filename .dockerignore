@@ -1,0 +1,14 @@
+.git
+**/.env
+**/.venv
+**/node_modules
+**/__pycache__
+**/*.pth
+**/*.onnx
+**/*.pt
+**/*.safetensors
+frontend
+notebooks
+outputs
+data
+docs/screenshots

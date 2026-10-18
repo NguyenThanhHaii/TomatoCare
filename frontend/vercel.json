@@ -1,0 +1,7 @@
+{
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "headers": [{"source": "/sw.js", "headers": [{"key": "Cache-Control", "value": "no-cache"}]}],
+  "rewrites": [{"source": "/((?!assets/|sw.js|workbox-|manifest.webmanifest|icon).*)", "destination": "/index.html"}]
+}

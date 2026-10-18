@@ -1,0 +1,7 @@
+-r requirements.txt
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.5.1+cpu; platform_system == "Linux"
+torchvision==0.20.1+cpu; platform_system == "Linux"
+torch>=2.2,<3; platform_system != "Linux"
+torchvision>=0.17,<1; platform_system != "Linux"
+timm>=1.0,<2

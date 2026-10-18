@@ -2,7 +2,7 @@
 
 Tomato leaf disease classification. Phase 1 implements the original **UniRepLKNet-A** architecture for four classes: Healthy, Early Blight, Late Blight, Leaf Mold. DINOv3 integration is reserved for a later phase.
 
-## Setup and test
+## Setup and training tests
 
 Use Python 3.10 or newer. From the repository root:
 
@@ -10,7 +10,7 @@ Use Python 3.10 or newer. From the repository root:
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m pytest -q
+python -m pytest -q tests/test_model.py tests/test_pipeline.py
 ```
 
 For a CPU-only environment, install CPU PyTorch first, then the remaining dependencies:
@@ -18,7 +18,7 @@ For a CPU-only environment, install CPU PyTorch first, then the remaining depend
 ```bash
 python -m pip install "torch==2.5.1+cpu" "torchvision==0.20.1+cpu" --index-url https://download.pytorch.org/whl/cpu
 python -m pip install -r requirements.txt
-python -m pytest -q
+python -m pytest -q tests/test_model.py tests/test_pipeline.py
 ```
 
 The test constructs the model with randomly initialized weights and runs a CPU forward pass on a `[1, 3, 224, 224]` tensor. It checks for four raw logits and compatibility with `CrossEntropyLoss`. No pretrained weights are downloaded or needed. The optional CUDA iGEMM extension is disabled.
@@ -81,7 +81,7 @@ Metrics xuất ra gồm Accuracy, Precision/Recall/Macro-F1 với macro averagin
 ### Kiểm thử và giới hạn
 
 ```bash
-python -m pytest -q
+python -m pytest -q tests/test_model.py tests/test_pipeline.py
 ```
 
 Tests ngoại tuyến tạo ảnh và checkpoint **ngẫu nhiên giả lập định dạng ImageNet** để kiểm tra schema, thứ tự nhãn, batch, forward 4 logits, validation metrics, đóng băng backbone/BatchNorm, train loop, lưu/nạp checkpoint, và test chỉ chạy sau khi chọn best epoch. Không tải weights trong test. Kết quả trên fixture không phản ánh chất lượng phân loại bệnh.
@@ -89,3 +89,39 @@ Tests ngoại tuyến tạo ảnh và checkpoint **ngẫu nhiên giả lập đ�
 **Giới hạn dữ liệu:** các ảnh có cùng SHA-256 được nhóm vào cùng split, không nhất thiết bị xóa. Ảnh trùng hệt trong cùng split vẫn có thể gây thiên lệch: lặp mẫu trong train làm tăng trọng số của mẫu đó, còn lặp mẫu trong validation/test làm lệch trọng số đánh giá. Chưa bảo đảm các split độc lập theo `leaf_id`; các ảnh khác nhau của cùng lá hoặc ảnh gần trùng có thể nằm ở các split khác nhau. Vì vậy test metrics có thể đánh giá quá cao khả năng tổng quát sang lá mới. Cần tách theo định danh lá/nguồn và kiểm tra ảnh gần trùng trong nghiên cứu tiếp theo.
 
 Môi trường Codex hiện bị chặn truy cập Kaggle và Hugging Face (HTTP 403), nên chưa xác minh trực tiếp dataset thật, chưa tải checkpoint chính thức và chưa huấn luyện trên GPU Kaggle. Notebook không lưu sẵn bất kỳ kết quả accuracy nào. Giai đoạn này chưa tích hợp DINOv3 hoặc Streamlit.
+
+## Phase 3 — React PWA + FastAPI
+
+The mobile application follows the supplied four-state design: Upload → Preview → Analyzing → Result. It uses the existing **UniRepLKNet-A baseline** and exactly four classes. DINOv3 remains planned. No Streamlit or paid API/database is used.
+
+- [`frontend/`](frontend/): React + Vite, custom mobile CSS, Lucide icons and `vite-plugin-pwa`.
+- [`backend/main.py`](backend/main.py): `/health`, multipart `/predict`, upload limits, EXIF/RGB checks, explicit CORS and one cached predictor per process.
+- [`tomatocare/inference.py`](tomatocare/inference.py): ONNX CPU loading of `best_unireplknet_a.onnx` from `ThanhHai25/TomatoCare-UniRepLKNet-A`, fixed batch-one preprocessing and real softmax probabilities. PyTorch remains available for research. Failures never return fabricated predictions.
+- [`scripts/export_onnx.py`](scripts/export_onnx.py) and [`scripts/benchmark.py`](scripts/benchmark.py): verified ONNX export and CPU/RSS measurement commands.
+- [`docs/deployment.md`](docs/deployment.md): complete local setup, environment variables, free Vercel/Render preparation, artifact export and resource gates.
+- [`docs/design-review.md`](docs/design-review.md), [`docs/screenshots/`](docs/screenshots/): visual comparison and 12 screenshots at 375/390/430px. Screenshot results are test fixtures, not trained-model output.
+
+Quick local run on Linux/Python 3.12 (two terminals; see deployment guide for installation details):
+
+```bash
+python -m venv .venv
+. .venv/bin/activate
+python -m pip install -r backend/requirements.txt
+CORS_ORIGINS=http://localhost:5173 INFERENCE_RUNTIME=onnx CPU_THREADS=1 \
+  python -m uvicorn backend.main:app --port 8000 --workers 1
+```
+
+```bash
+cd frontend
+npm ci
+VITE_API_URL=http://localhost:8000 npm run dev
+```
+
+The app shell may be installed and cached, but AI analysis needs a network connection. Photos/results are not cached by the PWA or saved permanently by the API. The supplied project evaluation figures are attributed in the deployment guide, not manufactured as current predictions.
+
+**Current blocker:** ONNX download still returns HTTP 403 in Codex. The owner reports Kaggle parity on 12 validation images (maximum logit error 8.106e-6), Default 108.76 MB / 28.63 ms and Low Memory 90.42 MB / 91.33 ms. These measurements have not been reproduced here or on Render. The full FastAPI attempt had zero successful inferences and 88.90 MiB failed-startup RSS only. See [runtime evidence](docs/onnx-runtime-validation.md). `render.yaml` now targets native Python ONNX with seven runtime dependencies, one worker and one CPU thread. No deployment has been performed.
+
+Full application tests require `python -m pip install -r requirements-dev.txt`, then `python -m pytest -q`; browser tests and production build run with `cd frontend && npm ci && npx playwright install chromium && npm test && npm run build`. Existing training-only tests can be run with `python -m pytest -q tests/test_model.py tests/test_pipeline.py`.
+
+
+Production defaults to `ONNX_PROFILE=default`; `ONNX_PROFILE=low_memory` is optional. The public ONNX file does not require an extra sidecar: embedded metadata is validated if present, otherwise the model owner's confirmed four-class/ImageNet preprocessing contract is used explicitly. The frontend API origin is configured using **`VITE_API_URL`**. Full-service resource checks are available with `python -m scripts.benchmark_api --image /actual/path/leaf.jpg --profile default`. Refer to the deployment guide for Render start/build commands and Vercel settings.

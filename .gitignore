@@ -228,3 +228,12 @@ __marimo__/
 /kaggle/
 /outputs/
 /data/
+
+# Phase 3 local/build artifacts
+**/node_modules/
+/frontend/dist/
+/frontend/test-results/
+/frontend/playwright-report/
+*.onnx
+.env.*
+!.env.example

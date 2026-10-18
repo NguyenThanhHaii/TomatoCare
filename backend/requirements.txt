@@ -1,0 +1,8 @@
+# Lightweight production runtime: deliberately no torch, torchvision or timm.
+fastapi>=0.115,<1
+uvicorn>=0.30,<1
+python-multipart>=0.0.18,<1
+Pillow>=10,<13
+numpy>=1.26,<3
+huggingface_hub>=0.23,<3
+onnxruntime>=1.20,<2

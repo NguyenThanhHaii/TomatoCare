@@ -96,11 +96,47 @@ def test_reject_invalid_metadata(bundle_path, field, value, match):
         discover_bundle(bundle_path)
 
 
-def test_reject_duplicate_hash(bundle_path):
+def test_reject_duplicate_hash_across_splits(bundle_path):
     rows = _read_rows(bundle_path)
     rows[4]["sha256"] = rows[0]["sha256"]
     _write_rows(bundle_path, rows)
-    with pytest.raises(ValueError, match="Duplicate sha256"):
+    with pytest.raises(ValueError, match="Duplicate sha256 across splits"):
+        discover_bundle(bundle_path)
+
+
+def test_allow_duplicate_hash_within_split_and_label(bundle_path):
+    rows = _read_rows(bundle_path)
+    original_image = bundle_path / rows[0]["image_path"]
+    for number in range(2):
+        duplicate = dict(rows[0])
+        duplicate["image_path"] = str(Path(rows[0]["image_path"]).with_name(f"duplicate_{number}.png"))
+        (bundle_path / duplicate["image_path"]).write_bytes(original_image.read_bytes())
+        rows.append(duplicate)
+    _write_rows(bundle_path, rows)
+    metadata_before = (bundle_path / "metadata.csv").read_bytes()
+    with pytest.warns(UserWarning, match="3 images in 1 groups; 2 additional copies") as caught:
+        bundle = discover_bundle(bundle_path)
+    assert len(caught) == 1
+    assert "train=2, val=0, test=0" in str(caught[0].message)
+    assert {s: len(r) for s, r in bundle.records.items()} == {"train": 6, "val": 4, "test": 4}
+    assert len({r.path for records in bundle.records.values() for r in records}) == 14
+    assert (bundle_path / "metadata.csv").read_bytes() == metadata_before
+    assert all((bundle_path / row["image_path"]).is_file() for row in rows)
+
+
+def test_reject_duplicate_hash_with_inconsistent_label(bundle_path):
+    rows = _read_rows(bundle_path)
+    rows[1]["sha256"] = rows[0]["sha256"]
+    _write_rows(bundle_path, rows)
+    with pytest.raises(ValueError, match="Duplicate sha256 with inconsistent label_id"):
+        discover_bundle(bundle_path)
+
+
+def test_reject_duplicate_path_even_with_matching_hash(bundle_path):
+    rows = _read_rows(bundle_path)
+    rows.append(dict(rows[0]))
+    _write_rows(bundle_path, rows)
+    with pytest.raises(ValueError, match="Image appears more than once"):
         discover_bundle(bundle_path)
 
 

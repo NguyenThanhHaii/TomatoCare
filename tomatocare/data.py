@@ -2,6 +2,8 @@
 
 import csv
 import json
+import warnings
+from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -86,7 +88,9 @@ def discover_bundle(search_root, path_column=None, label_column=None, split_colu
     records = {s: [] for s in ("train", "val", "test")}
     aliases = {"train": "train", "training": "train", "val": "val", "valid": "val", "validation": "val", "test": "test", "testing": "test"}
     seen = set()
-    seen_hashes = set()
+    hash_assignments = {}
+    hash_counts = Counter()
+    duplicate_counts = Counter()
     with (root / "metadata.csv").open(newline="", encoding="utf-8-sig") as handle:
         reader = csv.DictReader(handle)
         columns = reader.fieldnames or []
@@ -101,16 +105,23 @@ def discover_bundle(search_root, path_column=None, label_column=None, split_colu
                 target = class_to_idx[label] if label in class_to_idx else int(label)
                 if "label_id" in columns and int(row["label_id"]) != target:
                     raise ValueError("label and label_id disagree with labels.json")
+                if not 0 <= target < len(names):
+                    raise ValueError(f"Out-of-range label {label!r}")
+                split = aliases[row[sc].strip().lower()]
                 if "sha256" in columns:
                     digest = row["sha256"].strip().lower()
                     if len(digest) != 64 or any(c not in "0123456789abcdef" for c in digest):
                         raise ValueError("Invalid sha256 digest")
-                    if digest in seen_hashes:
-                        raise ValueError("Duplicate sha256 in metadata; inspect deduplication/split leakage")
-                    seen_hashes.add(digest)
-                if not 0 <= target < len(names):
-                    raise ValueError(f"Out-of-range label {label!r}")
-                split = aliases[row[sc].strip().lower()]
+                    if digest in hash_assignments:
+                        previous_split, previous_target = hash_assignments[digest]
+                        if previous_split != split:
+                            raise ValueError(f"Duplicate sha256 across splits: {previous_split} and {split}")
+                        if previous_target != target:
+                            raise ValueError(f"Duplicate sha256 with inconsistent label_id: {previous_target} and {target}")
+                        duplicate_counts[split] += 1
+                    else:
+                        hash_assignments[digest] = (split, target)
+                    hash_counts[digest] += 1
                 rel = Path(row[pc].strip())
                 if rel.is_absolute() or ".." in rel.parts:
                     raise ValueError("Image path must be relative and stay within images/")
@@ -128,6 +139,18 @@ def discover_bundle(search_root, path_column=None, label_column=None, split_colu
     for split, rows in records.items():
         if {r.target for r in rows} != set(range(4)):
             raise ValueError(f"Split {split} must contain all four classes")
+    if duplicate_counts:
+        groups = sum(count > 1 for count in hash_counts.values())
+        images_in_groups = sum(count for count in hash_counts.values() if count > 1)
+        per_split = ", ".join(f"{split}={duplicate_counts[split]}" for split in records)
+        warnings.warn(
+            f"Metadata SHA-256 duplicates: {images_in_groups} images in {groups} groups; "
+            f"{sum(duplicate_counts.values())} additional copies beyond the first ({per_split}). "
+            "All records retained; duplicates share the same split and label. "
+            "Within-split duplicates may bias evaluation; leaf_id independence is unverified.",
+            UserWarning,
+            stacklevel=2,
+        )
     return Bundle(root, names, records)
 
 

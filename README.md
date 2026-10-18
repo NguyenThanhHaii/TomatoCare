@@ -54,7 +54,7 @@ Schema được người tạo dataset cung cấp:
 image_path,label,label_id,split,sha256,source_image_path
 ```
 
-`image_path` tương đối với thư mục chứa `metadata.csv` (ví dụ `images/train/Healthy/filename.JPG`). Loader kiểm tra ảnh tồn tại trong `images/`, cấm đường dẫn thoát ra ngoài, nhãn hợp lệ, `label_id` khớp tên nhãn, split hợp lệ, mỗi split có đủ bốn lớp, và không lặp đường dẫn/SHA-256 trong metadata. Hash được kiểm tra từ metadata, không tính lại SHA-256 của toàn bộ file ảnh. `source_image_path` chỉ là thông tin nguồn; không được dùng làm đầu vào mô hình. Với schema chuẩn, loader chọn `image_path`, `label`, `split`; có thể chỉ định `--path-column`, `--label-column`, `--split-column` cho schema khác đã kiểm tra.
+`image_path` tương đối với thư mục chứa `metadata.csv` (ví dụ `images/train/Healthy/filename.JPG`). Loader kiểm tra ảnh tồn tại trong `images/`, cấm đường dẫn thoát ra ngoài, nhãn hợp lệ, `label_id` khớp tên nhãn, split hợp lệ, mỗi split có đủ bốn lớp, và không lặp đường dẫn trong metadata. SHA-256 được ánh xạ tới `(split, label_id)`: cho phép lặp hash nếu cùng split và cùng nhãn; khác split hoặc khác nhãn sẽ báo lỗi. Loader cảnh báo số ảnh thuộc các nhóm trùng, số bản sao ngoài ảnh đầu tiên và số bản sao theo split; không xóa ảnh hoặc thay đổi metadata. Giữ nguyên 5.452 ảnh (train=3816, val=816, test=820). Hash được kiểm tra từ metadata, không tính lại SHA-256 của toàn bộ file ảnh. `source_image_path` chỉ là thông tin nguồn; không được dùng làm đầu vào mô hình. Với schema chuẩn, loader chọn `image_path`, `label`, `split`; có thể chỉ định `--path-column`, `--label-column`, `--split-column` cho schema khác đã kiểm tra.
 
 `labels.json` là nguồn duy nhất quyết định thứ tự logits:
 
@@ -86,6 +86,6 @@ python -m pytest -q
 
 Tests ngoại tuyến tạo ảnh và checkpoint **ngẫu nhiên giả lập định dạng ImageNet** để kiểm tra schema, thứ tự nhãn, batch, forward 4 logits, validation metrics, đóng băng backbone/BatchNorm, train loop, lưu/nạp checkpoint, và test chỉ chạy sau khi chọn best epoch. Không tải weights trong test. Kết quả trên fixture không phản ánh chất lượng phân loại bệnh.
 
-**Giới hạn dữ liệu:** dataset chỉ chống trùng file chính xác bằng SHA-256. Chưa bảo đảm các split độc lập theo `leaf_id`; các ảnh khác nhau của cùng lá hoặc ảnh gần trùng có thể nằm ở các split khác nhau. Vì vậy test metrics có thể đánh giá quá cao khả năng tổng quát sang lá mới. Cần tách theo định danh lá/nguồn và kiểm tra ảnh gần trùng trong nghiên cứu tiếp theo.
+**Giới hạn dữ liệu:** các ảnh có cùng SHA-256 được nhóm vào cùng split, không nhất thiết bị xóa. Ảnh trùng hệt trong cùng split vẫn có thể gây thiên lệch: lặp mẫu trong train làm tăng trọng số của mẫu đó, còn lặp mẫu trong validation/test làm lệch trọng số đánh giá. Chưa bảo đảm các split độc lập theo `leaf_id`; các ảnh khác nhau của cùng lá hoặc ảnh gần trùng có thể nằm ở các split khác nhau. Vì vậy test metrics có thể đánh giá quá cao khả năng tổng quát sang lá mới. Cần tách theo định danh lá/nguồn và kiểm tra ảnh gần trùng trong nghiên cứu tiếp theo.
 
 Môi trường Codex hiện bị chặn truy cập Kaggle và Hugging Face (HTTP 403), nên chưa xác minh trực tiếp dataset thật, chưa tải checkpoint chính thức và chưa huấn luyện trên GPU Kaggle. Notebook không lưu sẵn bất kỳ kết quả accuracy nào. Giai đoạn này chưa tích hợp DINOv3 hoặc Streamlit.

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase 4 research
+
+- Add a physically truncated UniRepLKNet-A Stage 1–3 encoder loaded strictly from the trained four-class baseline.
+- Add gated real-pretrained DINOv3 ViT-S/16 CLS extraction, separate original processor, and 160+384-dimensional fusion with LayerNorm/Linear.
+- Freeze both encoders and BatchNorm/dropout modes; keep gradients only for the 3,268-parameter fusion head.
+- Add dual-branch data loading with shared train flip, opt-in Kaggle smoke/training/final-test notebook, validation selection and head-only artifact/provenance saving.
+- Add offline mock tests, source/license review and a copy of the official DINOv3 License. No gated weights or secrets are redistributed.
+- Preserve baseline training, production ONNX, FastAPI, React and hosting configuration. Research source is prepared on feature/hybrid-dinov3; no actual training, model-weight release, merge to main or deployment performed.
+
 ## Unreleased — Phase 3
 
 - Add a mobile-first React/Vite PWA matching the supplied four-state design.

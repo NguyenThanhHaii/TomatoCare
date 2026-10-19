@@ -1,6 +1,6 @@
 # TomatoCare
 
-Tomato leaf disease classification. Phase 1 implements the original **UniRepLKNet-A** architecture for four classes: Healthy, Early Blight, Late Blight, Leaf Mold. DINOv3 integration is reserved for a later phase.
+Tomato leaf disease classification. Phase 1 implements the original **UniRepLKNet-A** architecture for four classes: Healthy, Early Blight, Late Blight, Leaf Mold. Phase 4 adds a separate frozen DINOv3 hybrid research variant; the deployed application remains on the UniRepLKNet-A baseline.
 
 ## Setup and training tests
 
@@ -92,7 +92,7 @@ Môi trường Codex hiện bị chặn truy cập Kaggle và Hugging Face (HTTP
 
 ## Phase 3 — React PWA + FastAPI
 
-The mobile application follows the supplied four-state design: Upload → Preview → Analyzing → Result. It uses the existing **UniRepLKNet-A baseline** and exactly four classes. DINOv3 remains planned. No Streamlit or paid API/database is used.
+The mobile application follows the supplied four-state design: Upload → Preview → Analyzing → Result. It uses the existing **UniRepLKNet-A baseline** and exactly four classes. The Phase 4 hybrid is a separate research module; this production app still uses the baseline. No Streamlit or paid API/database is used.
 
 - [`frontend/`](frontend/): React + Vite, custom mobile CSS, Lucide icons and `vite-plugin-pwa`.
 - [`backend/main.py`](backend/main.py): `/health`, multipart `/predict`, upload limits, EXIF/RGB checks, explicit CORS and one cached predictor per process.
@@ -125,3 +125,21 @@ Full application tests require `python -m pip install -r requirements-dev.txt`, 
 
 
 Production defaults to `ONNX_PROFILE=default`; `ONNX_PROFILE=low_memory` is optional. The public ONNX file does not require an extra sidecar: embedded metadata is validated if present, otherwise the model owner's confirmed four-class/ImageNet preprocessing contract is used explicitly. The frontend API origin is configured using **`VITE_API_URL`**. Full-service resource checks are available with `python -m scripts.benchmark_api --image /actual/path/leaf.jpg --profile default`. Refer to the deployment guide for Render start/build commands and Vercel settings.
+
+
+## Phase 4 — Hybrid UniRepLKNet-A Stage 1–3 + DINOv3 (research only)
+
+New modules are isolated from production: `tomatocare/hybrid_model.py`, `hybrid_data.py`, `train_hybrid.py`, `requirements-hybrid.txt` and offline `tests/test_hybrid_model.py`. Baseline model/vendor/training, deployed ONNX, FastAPI, frontend and hosting configuration remain unchanged.
+
+- Retain the original trained UniRepLKNet-A downsampling/stages 0–2; GAP produces **[B,160]**. Stage 4, its downsampling, the final 320-dimensional norm and baseline classifier are absent from the hybrid.
+- Load real gated `facebook/dinov3-vits16-pretrain-lvd1689m` with `AutoModel.from_pretrained()` and its own `AutoImageProcessor`. Use **CLS token 0 [B,384]**, never register/patch token pooling.
+- Concatenate **[B,544] → LayerNorm(544) → Linear(544,4)** raw logits. Both encoders stay frozen/eval under `torch.no_grad()`; only the 3,268 fusion-head parameters train.
+- Canonical class order: Healthy, Early Blight, Late Blight, Leaf Mold. Preserve existing train/val/test counts 3816/816/820, shared train-time horizontal flip, baseline preprocessing, and independent config-defined DINO preprocessing.
+
+Import [notebooks/train_hybrid_dinov3_kaggle.ipynb](notebooks/train_hybrid_dinov3_kaggle.ipynb) to Kaggle. Enable Internet, T4, the existing TomatoCare dataset and Kaggle Secret `HF_TOKEN` for the HF account granted gated access. The notebook clones the research branch `feature/hybrid-dinov3` into a separate Kaggle directory; it does not use production `main`. An attached source checkout is also supported. Batch size starts at 4. Notebook defaults to real-pretrained smoke only; training and final test have separate **False** opt-ins. No training or downloads occur on Python module import.
+
+Optional future training selects by validation Macro-F1 and writes a **head-only** best checkpoint plus encoder provenance/preprocessing and metrics. It does not redistribute DINOv3 weights. Test is an explicitly separate final action after hyperparameters are fixed.
+
+See [docs/hybrid-phase4.md](docs/hybrid-phase4.md) for source/key mapping, reconstruction, fair baseline comparison, T4 guidance and dataset limitations. DINOv3 code/weights use Meta's [custom DINOv3 License](docs/third-party/DINOv3-LICENSE.md), not Apache/MIT. Its distribution/derivative and acknowledgment conditions must be reviewed before public release; this phase does not propose uploading a full DINOv3-containing hybrid checkpoint.
+
+Tests: `python -m pytest -q tests/test_hybrid_model.py` (offline mocks, no HF access). Codex still has HF HTTP 403; no real pretrained hybrid forward, T4 memory measurement or hybrid accuracy is claimed. Exact duplicates within splits and unverified `leaf_id` independence remain dataset limitations.

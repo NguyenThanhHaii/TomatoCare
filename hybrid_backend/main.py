@@ -1,9 +1,10 @@
 """Experimental hybrid app. Run separately on port 8001, never replace backend.main."""
 
+import asyncio
 import logging
 import os
 import threading
-from contextlib import asynccontextmanager
+from contextlib import asynccontextmanager, suppress
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -18,18 +19,34 @@ logger = logging.getLogger(__name__)
 
 
 def create_app(predictor_factory=load_hybrid_predictor):
-    @asynccontextmanager
-    async def lifespan(app):
-        app.state.predictor, app.state.error = None, None
+    async def initialize(app):
         try:
             app.state.predictor = await run_in_threadpool(predictor_factory)
+            app.state.error = None
         except Exception as exc:
-            app.state.error = f"Hybrid model unavailable: {exc}"
+            from tomatocare.hybrid_bootstrap import BootstrapError
+            detail = str(exc) if isinstance(exc, BootstrapError) or not os.getenv("HYBRID_HF_REPO") else "Private model initialization failed; check service configuration"
+            app.state.error = f"Hybrid model unavailable: {detail}"
             logger.error("%s", app.state.error)
-        yield
-        app.state.predictor = None
+    @asynccontextmanager
+    async def lifespan(app):
+        app.state.predictor, app.state.error = None, "Hybrid model initializing"
+        task = None
+        if os.getenv("HYBRID_HF_REPO"):
+            # Bind the API immediately: /health stays 503 during remote bootstrap.
+            task = asyncio.create_task(initialize(app))
+        else:
+            await initialize(app)  # Preserve Phase 5 local startup behavior.
+        try:
+            yield
+        finally:
+            if task is not None:
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+            app.state.predictor = None
 
-    app = FastAPI(title="TomatoCare Hybrid Experimental", version="0.5.0", lifespan=lifespan)
+    app = FastAPI(title="TomatoCare Hybrid Experimental", version="0.6.0", lifespan=lifespan)
     origins = [o.strip() for o in os.getenv("HYBRID_CORS_ORIGINS", "").split(",") if o.strip()]
     if "*" in origins:
         raise ValueError("Use explicit HYBRID_CORS_ORIGINS")
@@ -49,7 +66,10 @@ def create_app(predictor_factory=load_hybrid_predictor):
         if app.state.predictor is None:
             return JSONResponse({"status": "unavailable", "detail": app.state.error}, status_code=503)
         return {"status": "ready", "experimental": True, "model_version": app.state.predictor.model_version,
-                "runtime": "onnx-cpu", "sha256_verified": True}
+                "runtime": "onnx-cpu", "sha256_verified": True,
+                "artifact_source": getattr(app.state.predictor, "artifact_source", "local"),
+                "hf_revision": getattr(app.state.predictor, "artifact_revision", None),
+                "onnx_sha256": getattr(app.state.predictor, "manifest", {}).get("model_sha256")}
 
     @app.post("/predict")
     async def predict(file: UploadFile = File(...)):
@@ -73,9 +93,9 @@ def create_app(predictor_factory=load_hybrid_predictor):
                     image.close()
             except HTTPException:
                 raise
-            except Exception as exc:
-                logger.exception("Hybrid inference failed")
-                raise HTTPException(503, "Hybrid inference failed; inspect model/manifest compatibility") from exc
+            except Exception:
+                logger.error("Hybrid inference failed; no request/SDK exception details are logged")
+                raise HTTPException(503, "Hybrid inference failed; inspect model/manifest compatibility") from None
             finally:
                 busy.release()
         finally:

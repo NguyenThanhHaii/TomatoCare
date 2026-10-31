@@ -195,11 +195,14 @@ def preprocess(image, manifest):
 
 
 class HybridOnnxPredictor:
-    def __init__(self, directory, session_factory=None):
+    def __init__(self, directory, session_factory=None, expected_sha256=None):
         self.root, self.manifest = load_manifest(directory)
         path = (self.root / self.manifest["model_file"]).resolve()
         if not path.is_relative_to(self.root) or not path.is_file():
             raise ValueError("Missing model file or model path escapes HYBRID_MODEL_DIR")
+        # Check the trusted external digest again immediately before session creation.
+        if expected_sha256 is not None and self.manifest["model_sha256"] != expected_sha256:
+            raise ValueError("Manifest ONNX SHA-256 differs from trusted expected digest")
         # Verify the supplied artifact before ONNX Runtime parses any model bytes.
         if sha256_file(path) != self.manifest["model_sha256"]:
             raise ValueError("Hybrid ONNX SHA-256 mismatch; inference refused")
@@ -238,7 +241,15 @@ class HybridOnnxPredictor:
 
 
 def load_hybrid_predictor():
-    directory = os.getenv("HYBRID_MODEL_DIR")
-    if not directory:
-        raise ValueError("Set HYBRID_MODEL_DIR to the private directory containing inference_manifest.json and tomatocare_hybrid.onnx")
-    return HybridOnnxPredictor(directory)
+    from .hybrid_bootstrap import BootstrapError, resolve_hybrid_model_dir
+    directory = resolve_hybrid_model_dir()
+    remote = bool(os.getenv("HYBRID_HF_REPO"))
+    try:
+        predictor = HybridOnnxPredictor(directory, expected_sha256=os.getenv("HYBRID_EXPECTED_ONNX_SHA256") or None)
+    except Exception:
+        if remote:
+            raise BootstrapError("Verified private bundle could not initialize ONNX; check graph/signature compatibility") from None
+        raise
+    predictor.artifact_source = "private-hf" if remote else "local"
+    predictor.artifact_revision = os.getenv("HYBRID_HF_REVISION") if remote else None
+    return predictor

@@ -45,7 +45,7 @@ OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 \
 python -m uvicorn hybrid_backend.main:app --host 127.0.0.1 --port 8001 --workers 1
 ```
 
-Only six direct runtime dependencies are needed: FastAPI, Uvicorn, python-multipart, Pillow, NumPy and ONNX Runtime. There is no mandatory Torch, Transformers or HF SDK. The runtime was installed/imported in an isolated environment with all three absent. `.env.example` documents variables; it is not automatically loaded. Set explicit `HYBRID_CORS_ORIGINS` only for an intentional experimental client; the current React application is not changed or switched.
+Phase 5 local mode used six direct runtime dependencies; the current requirements add the optional Phase 6 HF SDK. The six inference dependencies are: FastAPI, Uvicorn, python-multipart, Pillow, NumPy and ONNX Runtime. There is no mandatory Torch or Transformers. Local mode never calls HF; the current requirements include its SDK for optional private bootstrap. The runtime was installed/imported in an isolated environment with all three absent. `.env.example` documents variables; it is not automatically loaded. Set explicit `HYBRID_CORS_ORIGINS` only for an intentional experimental client; the current React application is not changed or switched.
 
 One session is initialized during app lifespan and reused. Settings match the stated low-memory controls: CPUExecutionProvider, one intra-op and inter-op thread, sequential execution, CPU arena disabled and memory pattern disabled. Other graph optimizations retain the runtime default; no quantization or replacement model is introduced. One worker is required. One prediction is admitted at a time; concurrent predictions receive 429.
 
@@ -122,3 +122,6 @@ Owner-reported results: Accuracy 98.2927%, Macro-F1 98.0715%, 90.21 MiB ONNX, 17
 The private bundle includes DINOv3 material and its license; retain the accompanying agreement. The [reviewed DINOv3 License](third-party/DINOv3-LICENSE.md) is Meta's custom agreement, not a blanket Apache/MIT grant for the model. Section 1.b.i subjects redistribution of materials/derivatives to its terms and requires a copy; research publication acknowledgment is addressed separately. Review the current accepted gated/model-specific terms before proposing any public model hosting. This phase proposes only private/local experimentation, no public HF upload or model hosting. A checksum proves file identity, not distribution permission or parity.
 
 Exact duplicate images within a split/class and unverified `leaf_id` independence remain dataset limitations; the new accuracy figures do not remove potential dataset bias. Test data must not be used to choose preprocessing tolerances or model settings. No weights, ZIP, dataset, token or secret `.env` should enter Git; the source ignore rules cover model/archive artifacts.
+
+
+For optional authenticated remote startup, immutable revision pinning and staging verification, see [Phase 6](hybrid-phase6-private-bootstrap.md). Phase 5 local-directory mode and its predictions remain unchanged.

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase 6 private Hybrid bootstrap
+
+- Add optional Private HF startup with required immutable HF commit and trusted ONNX SHA-256.
+- Download only the ONNX, manifest and DINOv3 license at one revision; verify in staging and atomically activate the complete bundle.
+- Keep Phase 5 local mode, one cached CPU session and fail-closed behavior; no old-model/baseline fallback after download/auth failure.
+- Serve pending remote health as 503 while background initialization runs; redact SDK errors and causal chains.
+- Add an unapplied independent Render Free configuration, seven-package runtime, offline private-read/startup tests and real Kaggle cold-start/API/RSS checker.
+- Preserve production/frontend/main. No real private bootstrap reproduced in Codex, artifact/secret upload, service creation or deployment.
+
 ## Unreleased — Phase 5 experimental backend
 
 - Add a separate private-bundle Hybrid ONNX FastAPI service, without replacing baseline production.

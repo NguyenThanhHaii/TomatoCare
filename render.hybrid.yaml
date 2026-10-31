@@ -1,0 +1,35 @@
+# Independent experimental service configuration only. NOT applied/deployed.
+services:
+  - type: web
+    name: tomatocare-hybrid-experimental
+    runtime: python
+    plan: free
+    autoDeploy: false
+    buildCommand: pip install -r hybrid_backend/requirements.txt
+    startCommand: uvicorn hybrid_backend.main:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.14"
+      - key: HYBRID_HF_REPO
+        value: ThanhHai25/TomatoCare-Hybrid-ONNX-Private
+      - key: HYBRID_HF_REVISION
+        sync: false
+      - key: HF_TOKEN
+        sync: false
+      - key: HYBRID_EXPECTED_ONNX_SHA256
+        value: 196c46f385414800a9233650661ef102d3407bbaca0a69da908222c4f504f4c4
+      - key: HYBRID_MODEL_DIR
+        value: /tmp/tomatocare-hybrid
+      - key: HF_HOME
+        value: /tmp/huggingface
+      - key: HF_HUB_DISABLE_XET
+        value: "1"
+      - key: HF_HUB_DISABLE_PROGRESS_BARS
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
+      - key: HYBRID_CORS_ORIGINS
+        sync: false

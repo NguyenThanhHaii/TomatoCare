@@ -154,8 +154,17 @@ python -m pip install -r hybrid_backend/requirements.txt
 HYBRID_MODEL_DIR=/absolute/path/to/private-bundle OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python -m uvicorn hybrid_backend.main:app --port 8001 --workers 1
 ```
 
-The six-dependency CPU runtime does not require PyTorch, Transformers or HF access. One cached session uses one intra/inter-op thread with CPU arena and memory pattern disabled. Production `backend.main`, React, training, hosting configuration and the baseline checkpoint are unchanged.
+Local ONNX mode does not require PyTorch, Transformers or HF access; Phase 6 adds the HF SDK for optional Private startup. One cached session uses one intra/inter-op thread with CPU arena and memory pattern disabled. Production `backend.main`, React, training, hosting configuration and the baseline checkpoint are unchanged.
 
 See [Phase 5 setup, manifest and Kaggle validation](docs/hybrid-phase5.md), [supplied manifest example](docs/examples/hybrid_inference_manifest.json), and `scripts/check_hybrid_onnx.py`. The integration gate compares preprocessing and logits on 12 distinct validation images across all four classes using the real trained PyTorch reference; it is not considered passed until actually run on Kaggle. The supplied one-image 4.77e-6 result does not establish multi-image parity.
 
 The trained artifact is not present in Codex. Reported 98.2927% Accuracy / 98.0715% Macro-F1, 177.84 MB RSS and 139.07 ms latency are owner-provided Kaggle results, not fresh measurements here. Keep the DINOv3-containing bundle private, preserve its license, and review redistribution terms before public hosting. Source/tests only are published to the feature branch; no artifact upload, main merge, frontend switch or deployment is performed.
+
+
+## Phase 6 — Private HF bootstrap (experimental only)
+
+Optional remote startup reads exactly three artifacts from `ThanhHai25/TomatoCare-Hybrid-ONNX-Private` using `HYBRID_HF_REPO`, a mandatory full immutable `HYBRID_HF_REVISION`, runtime-only `HF_TOKEN` and trusted `HYBRID_EXPECTED_ONNX_SHA256`. `HYBRID_MODEL_DIR` remains a direct bundle path in local mode and becomes an ephemeral staging parent in remote mode. Staging verification/atomic activation precede session creation; network/auth/hash failures never fall back to an old model or baseline. Downloads occur once per process startup, not per prediction.
+
+Remote `/health` stays 503 during initialization and becomes ready only after model validation/session creation. Legacy Phase 5 local behavior remains supported. Seven lightweight runtime dependencies include HF Hub; no Torch or Transformers is required. Production, frontend, main and `render.yaml` remain unchanged.
+
+See [Private bootstrap/token/revision/Render/Kaggle instructions](docs/hybrid-phase6-private-bootstrap.md), separate unapplied `render.hybrid.yaml`, and `scripts/check_private_hybrid_api.py`. The owner has now confirmed 12-image parity and real Uvicorn results (240.07 MB peak RSS, 180.18 ms mean HTTP latency) on Kaggle. Those do not independently verify this new authenticated cold-start path or Render Free resource limits. No token/private artifact is available in Codex; real private bootstrap is pending authorized Kaggle testing. No service creation, model upload, main merge or deployment is performed here.

@@ -237,3 +237,7 @@ __marimo__/
 *.onnx
 .env.*
 !.env.example
+
+# Private experimental hybrid bundles; never publish model artifacts.
+*.zip
+/hybrid_artifacts/

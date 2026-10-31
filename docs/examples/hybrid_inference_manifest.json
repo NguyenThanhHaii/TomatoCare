@@ -1,0 +1,88 @@
+{
+  "architecture": "unireplknet_a_stage3_dinov3_vits16",
+  "model_file": "tomatocare_hybrid.onnx",
+  "model_sha256": "196c46f385414800a9233650661ef102d3407bbaca0a69da908222c4f504f4c4",
+  "input_shapes": {
+    "baseline_images": [
+      1,
+      3,
+      224,
+      224
+    ],
+    "dino_images": [
+      1,
+      3,
+      224,
+      224
+    ]
+  },
+  "class_names": [
+    "Healthy",
+    "Early Blight",
+    "Late Blight",
+    "Leaf Mold"
+  ],
+  "preprocessing": {
+    "unireplknet": {
+      "color_mode": "RGB",
+      "image_size": [
+        224,
+        224
+      ],
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ],
+      "resize": "exact",
+      "interpolation": "bilinear",
+      "train_augmentation": "random horizontal flip (p=0.5)"
+    },
+    "dinov3": {
+      "image_processor_type": "DINOv3ViTImageProcessorFast",
+      "do_resize": true,
+      "size": {
+        "height": 224,
+        "width": 224
+      },
+      "resample": 2,
+      "do_center_crop": null,
+      "crop_size": null,
+      "do_rescale": true,
+      "rescale_factor": 0.00392156862745098,
+      "do_normalize": true,
+      "image_mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "image_std": [
+        0.229,
+        0.224,
+        0.225
+      ],
+      "do_convert_rgb": null
+    }
+  },
+  "provenance": {
+    "baseline": {
+      "repo_id": "ThanhHai25/TomatoCare-UniRepLKNet-A",
+      "filename": "best_unireplknet_a.pth",
+      "requested_revision": "main",
+      "resolved_revision": "93c03343ef7d31b1b86055f076b9859037977121",
+      "sha256": "e38ca1724124817b41cf16dec990e70d71458d5687ad91d86ad549a9e9e1afb2"
+    },
+    "dinov3": {
+      "model_id": "facebook/dinov3-vits16-pretrain-lvd1689m",
+      "requested_revision": "main",
+      "resolved_revision": "114c1379950215c8b35dfcd4e90a5c251dde0d32"
+    }
+  },
+  "test_accuracy": 0.9829268292682927,
+  "test_macro_f1": 0.9807152550739278
+}

@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased — Phase 5 experimental backend
+
+- Add a separate private-bundle Hybrid ONNX FastAPI service, without replacing baseline production.
+- Validate the supplied manifest/class order, SHA-256 before session creation, fixed two-input signatures and real logits.
+- Implement independent PIL baseline and NumPy float-antialiased DINOv3 Fast preprocessing, including supported crop/resampling/normalization.
+- Cache a CPU-only low-memory session; reuse existing image/body validation; add a minimal six-package runtime.
+- Add offline API/preprocessing/manifest tests and a multi-image Kaggle PyTorch/ONNX validation script using independent training preprocessing.
+- Document owner-reported results separately from unverified real-artifact parity/performance and DINOv3 redistribution requirements. No public weights, main merge or deployment.
+
 ## Unreleased — Phase 4 research
 
 - Add a physically truncated UniRepLKNet-A Stage 1–3 encoder loaded strictly from the trained four-class baseline.

@@ -143,3 +143,19 @@ Optional future training selects by validation Macro-F1 and writes a **head-only
 See [docs/hybrid-phase4.md](docs/hybrid-phase4.md) for source/key mapping, reconstruction, fair baseline comparison, T4 guidance and dataset limitations. DINOv3 code/weights use Meta's [custom DINOv3 License](docs/third-party/DINOv3-LICENSE.md), not Apache/MIT. Its distribution/derivative and acknowledgment conditions must be reviewed before public release; this phase does not propose uploading a full DINOv3-containing hybrid checkpoint.
 
 Tests: `python -m pytest -q tests/test_hybrid_model.py` (offline mocks, no HF access). Codex still has HF HTTP 403; no real pretrained hybrid forward, T4 memory measurement or hybrid accuracy is claimed. Exact duplicates within splits and unverified `leaf_id` independence remain dataset limitations.
+
+
+## Phase 5 — Hybrid ONNX experimental API (private bundle)
+
+An independent `hybrid_backend.main:app` loads `inference_manifest.json` and `tomatocare_hybrid.onnx` from **`HYBRID_MODEL_DIR`**, verifies SHA-256 before session creation, and runs two separate float32 `[1,3,224,224]` inputs. Baseline PIL resize-before-rescale and DINOv3 Fast rescale-before-float-resize remain distinct, with their own manifest normalization/crop settings. Logits produce genuine four-class softmax probabilities and `model_version`.
+
+```bash
+python -m pip install -r hybrid_backend/requirements.txt
+HYBRID_MODEL_DIR=/absolute/path/to/private-bundle OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python -m uvicorn hybrid_backend.main:app --port 8001 --workers 1
+```
+
+The six-dependency CPU runtime does not require PyTorch, Transformers or HF access. One cached session uses one intra/inter-op thread with CPU arena and memory pattern disabled. Production `backend.main`, React, training, hosting configuration and the baseline checkpoint are unchanged.
+
+See [Phase 5 setup, manifest and Kaggle validation](docs/hybrid-phase5.md), [supplied manifest example](docs/examples/hybrid_inference_manifest.json), and `scripts/check_hybrid_onnx.py`. The integration gate compares preprocessing and logits on 12 distinct validation images across all four classes using the real trained PyTorch reference; it is not considered passed until actually run on Kaggle. The supplied one-image 4.77e-6 result does not establish multi-image parity.
+
+The trained artifact is not present in Codex. Reported 98.2927% Accuracy / 98.0715% Macro-F1, 177.84 MB RSS and 139.07 ms latency are owner-provided Kaggle results, not fresh measurements here. Keep the DINOv3-containing bundle private, preserve its license, and review redistribution terms before public hosting. Source/tests only are published to the feature branch; no artifact upload, main merge, frontend switch or deployment is performed.

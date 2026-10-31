@@ -1,0 +1,11 @@
+# CI/test host only; never installed in the Hybrid Docker runtime.
+# Versions verified in the existing Python 3.12 Linux test environment.
+-r requirements-dev.txt
+torch==2.5.1
+torchvision==0.20.1
+timm==1.0.30
+pytest==9.2.0
+httpx==0.28.1
+onnx==1.23.2
+scikit-learn==1.9.1
+matplotlib==3.11.2

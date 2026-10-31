@@ -12,7 +12,7 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNTIME_ONLY_ENV = {"HF_TOKEN", "HYBRID_HF_REPO", "HYBRID_HF_REVISION", "HYBRID_MODEL_DIR", "HYBRID_EXPECTED_ONNX_SHA256"}
+RUNTIME_ONLY_ENV = {"HF_TOKEN", "HF_TOKEN_FILE", "HYBRID_HF_REPO", "HYBRID_HF_REVISION", "HYBRID_MODEL_DIR", "HYBRID_EXPECTED_ONNX_SHA256"}
 
 AUDIT_CODE = r'''
 import importlib.util,json,os,site
@@ -23,6 +23,7 @@ assert os.getuid()!=0, 'Runtime must not be root'
 assert importlib.util.find_spec('torch') is None
 assert importlib.util.find_spec('transformers') is None
 assert 'CPUExecutionProvider' in onnxruntime.get_available_providers()
+assert not Path('/run/secrets/hf_token').exists(), 'Runtime HF secret must not be baked'
 assert not Path('/run/secrets/pip_ca').exists(), 'Temporary build CA must not be persisted'
 root=Path('/app')
 files=[p for p in root.rglob('*') if p.is_file()]
@@ -82,6 +83,7 @@ def check_image(image, build=False):
         raise RuntimeError("Incorrect nonroot/one-worker image configuration")
     if "hybrid_backend.main:app" not in " ".join(config.get("Cmd", [])):
         raise RuntimeError("Image does not run the experimental Hybrid app")
+    pip_check = docker("run", "--rm", "--entrypoint", "python", image, "-m", "pip", "check")
     audit = json.loads(docker("run", "--rm", "--entrypoint", "python", image, "-c", AUDIT_CODE))
     name = "tomatocare-packaging-check-" + uuid.uuid4().hex[:10]
     try:
@@ -104,7 +106,7 @@ def check_image(image, build=False):
         if oom != "false":
             raise RuntimeError("Container was OOM-killed even without a model")
         return {"image":image, "image_id":docker("image", "inspect", "--format", "{{.Id}}", image),
-                "audit":audit, "no_model_http_smoke":responses,
+                "pip_check":pip_check, "audit":audit, "no_model_http_smoke":responses,
                 "private_inference":"not tested; no credentials/artifact injected",
                 "resource_scope":"512 MiB / 1 CPU framework-only smoke, not real-model memory proof"}
     finally:
@@ -113,7 +115,7 @@ def check_image(image, build=False):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--image",default="tomatocare-hybrid:phase7a")
+    parser.add_argument("--image",default="tomatocare-hybrid:phase7b")
     parser.add_argument("--build",action="store_true")
     args=parser.parse_args()
     try:

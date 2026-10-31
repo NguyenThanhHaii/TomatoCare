@@ -172,3 +172,5 @@ See [Private bootstrap/token/revision/Render/Kaggle instructions](docs/hybrid-ph
 ## Phase 7A — Hybrid Docker packaging
 
 Build the independent experimental API with `docker build -f Dockerfile.hybrid -t tomatocare-hybrid:phase7a .`. Python 3.12 slim, nonroot, one worker, no Torch/Transformers or baked weights/secrets. Private model configuration is supplied only at container runtime. See [Docker build/run, PowerShell, image audit and PDF evidence guide](docs/hybrid-docker.md). No CI/CD, Docker Hub publication or deployment is performed in this phase.
+
+Phase 7B adds `compose.yaml` (one experimental service, loopback port 8001, 512 MiB/1 CPU), environment-backed Compose secrets through `HF_TOKEN_FILE`, and a fully hashed 31-package `hybrid_backend/requirements.lock.txt`. Docker uses verified Python 3.12.16 slim/amd64 digest, installs with `--require-hashes`, and runs `pip check`. See the [Compose/PowerShell and lock regeneration guide](docs/hybrid-docker.md#7-phase-7b--compose-và-dependency-lock). Direct `HF_TOKEN` bootstrap remains supported. No workflow, registry publication or deployment is added.

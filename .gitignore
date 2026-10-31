@@ -241,3 +241,8 @@ __marimo__/
 # Private experimental hybrid bundles; never publish model artifacts.
 *.zip
 /hybrid_artifacts/
+
+# Local Docker runtime secrets (prefer environment-backed Compose secrets).
+/.secrets/
+/secrets/
+/hf_token.txt

@@ -48,3 +48,8 @@ attachments
 docs/screenshots
 **/test-results
 **/playwright-report
+
+# Runtime secret files must never enter the build context.
+**/secrets
+**/.secrets
+**/*token*.txt

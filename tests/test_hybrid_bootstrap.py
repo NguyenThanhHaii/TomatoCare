@@ -277,3 +277,77 @@ def test_prediction_failure_never_echoes_exception_credentials(monkeypatch, capl
         response=client.post("/predict",files={"file":("leaf.png",image.getvalue(),"image/png")})
         assert response.status_code == 503 and SECRET not in response.text
     assert SECRET not in caplog.text
+
+
+def test_runtime_token_file_private_download(monkeypatch, bundle, tmp_path):
+    setup_env(monkeypatch, bundle)
+    monkeypatch.delenv('HF_TOKEN')
+    secret_file = tmp_path / 'runtime-secret'
+    secret_file.write_text(SECRET + '\n')
+    monkeypatch.setenv('HF_TOKEN_FILE', str(secret_file))
+    calls = fake_hf(monkeypatch, bundle)
+    directory = bootstrap.resolve_hybrid_model_dir()
+    assert calls == list(bootstrap.FILES)
+    assert directory.is_dir()
+    assert not list(directory.rglob('runtime-secret'))
+
+
+@pytest.mark.parametrize('content', [b'', b' \n', b'two tokens', b'\xff', b'x' * 4097])
+def test_invalid_secret_file_is_safe(monkeypatch, tmp_path, content):
+    monkeypatch.delenv('HF_TOKEN', raising=False)
+    path = tmp_path / 'secret'
+    path.write_bytes(content)
+    monkeypatch.setenv('HF_TOKEN_FILE', str(path))
+    with pytest.raises(bootstrap.BootstrapError, match='HF_TOKEN_FILE') as error:
+        bootstrap._runtime_token()
+    assert str(path) not in str(error.value)
+    assert error.value.__suppress_context__
+
+
+def test_missing_secret_file_no_path_or_credentials_logged(monkeypatch, tmp_path, caplog):
+    monkeypatch.delenv('HF_TOKEN', raising=False)
+    path = tmp_path / 'private-path-do-not-log'
+    monkeypatch.setenv('HF_TOKEN_FILE', str(path))
+    with pytest.raises(bootstrap.BootstrapError) as error:
+        bootstrap._runtime_token()
+    assert str(path) not in str(error.value) + caplog.text
+
+
+def test_ambiguous_secret_sources_fail_closed(monkeypatch, tmp_path):
+    monkeypatch.setenv('HF_TOKEN', SECRET)
+    monkeypatch.setenv('HF_TOKEN_FILE', str(tmp_path / 'unread-file'))
+    with pytest.raises(bootstrap.BootstrapError, match='only one') as error:
+        bootstrap._runtime_token()
+    assert SECRET not in str(error.value)
+
+
+def test_legacy_environment_token_still_supported(monkeypatch):
+    monkeypatch.delenv('HF_TOKEN_FILE', raising=False)
+    monkeypatch.setenv('HF_TOKEN', SECRET)
+    assert bootstrap._runtime_token() == SECRET
+
+
+def test_local_bundle_does_not_read_token_file(monkeypatch, tmp_path):
+    monkeypatch.delenv('HYBRID_HF_REPO', raising=False)
+    monkeypatch.delenv('HYBRID_HF_REVISION', raising=False)
+    monkeypatch.delenv('HYBRID_EXPECTED_ONNX_SHA256', raising=False)
+    monkeypatch.setenv('HYBRID_MODEL_DIR', str(tmp_path))
+    monkeypatch.setenv('HF_TOKEN_FILE', str(tmp_path / 'nonexistent'))
+    assert bootstrap.resolve_hybrid_model_dir() == tmp_path
+
+
+def test_api_startup_with_unreadable_secret_file_is_503(monkeypatch, bundle, tmp_path, caplog):
+    setup_env(monkeypatch, bundle)
+    monkeypatch.delenv('HF_TOKEN')
+    filename = tmp_path / 'do-not-log-secret-path'
+    monkeypatch.setenv('HF_TOKEN_FILE', str(filename))
+    monkeypatch.setattr(bootstrap, '_download', lambda *args: pytest.fail('Network must not run'))
+    with TestClient(create_app()) as client:
+        for _ in range(50):
+            response = client.get('/health')
+            if 'HF_TOKEN_FILE' in response.text:
+                break
+            time.sleep(0.01)
+        assert response.status_code == 503 and 'HF_TOKEN_FILE' in response.text
+        assert str(filename) not in response.text + caplog.text
+        assert SECRET not in response.text + caplog.text

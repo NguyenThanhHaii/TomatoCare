@@ -1,0 +1,30 @@
+# Experimental Hybrid only; no production service or public model volume.
+services:
+  hybrid:
+    image: tomatocare-hybrid:phase7b
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: Dockerfile.hybrid
+    ports:
+      - "127.0.0.1:8001:8000"
+    mem_limit: 512m
+    cpus: 1.0
+    environment:
+      PORT: "8000"
+      HYBRID_HF_REPO: ${HYBRID_HF_REPO:-ThanhHai25/TomatoCare-Hybrid-ONNX-Private}
+      HYBRID_HF_REVISION: ${HYBRID_HF_REVISION:?Set the full immutable 40-character HF commit SHA}
+      HYBRID_EXPECTED_ONNX_SHA256: ${HYBRID_EXPECTED_ONNX_SHA256:-196c46f385414800a9233650661ef102d3407bbaca0a69da908222c4f504f4c4}
+      HYBRID_MODEL_DIR: ${HYBRID_MODEL_DIR:-/tmp/tomatocare-hybrid}
+      HF_TOKEN_FILE: /run/secrets/hf_token
+    secrets:
+      - hf_token
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=3).close()"]
+      interval: 30s
+      timeout: 5s
+      start_period: 300s
+      retries: 3
+secrets:
+  hf_token:
+    environment: HF_TOKEN

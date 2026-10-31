@@ -18,7 +18,7 @@ def instructions():
 
 def test_python_slim_nonroot_and_one_worker():
     items=instructions()
-    assert items[0]==('FROM','python:3.12-slim')
+    assert items[0]==('FROM','python:3.12.16-slim-trixie@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b')
     assert ('USER','10001:10001') in items
     assert ('EXPOSE','8000') in items
     command=json.loads(next(value for key,value in items if key=='CMD'))
@@ -43,7 +43,7 @@ def test_exact_runtime_copy_allowlist_and_all_sources_exist():
     for key,value in instructions():
         if key=='COPY':sources.extend(item for item in shlex.split(value)[:-1] if not item.startswith("--"))
     assert set(sources)=={
-        'hybrid_backend/requirements.txt','hybrid_backend/__init__.py','hybrid_backend/main.py',
+        'hybrid_backend/requirements.lock.txt','hybrid_backend/__init__.py','hybrid_backend/main.py',
         'backend/__init__.py','backend/main.py','tomatocare/__init__.py','tomatocare/inference.py',
         'tomatocare/hybrid_onnx.py','tomatocare/hybrid_bootstrap.py','docs/third-party/DINOv3-LICENSE.md'}
     assert all((ROOT/path).is_file() for path in sources)
@@ -54,7 +54,8 @@ def test_light_dependencies_and_no_model_loaded_during_build():
     requirements=(ROOT/'hybrid_backend/requirements.txt').read_text().lower()
     assert 'torch>=' not in requirements and 'transformers>=' not in requirements
     source=(ROOT/'Dockerfile.hybrid').read_text()
-    assert '--no-cache-dir --no-compile' in source
+    assert '--no-cache-dir --no-compile --require-hashes --only-binary=:all:' in source
+    assert 'python -m pip check' in source
     assert "rglob('*.onnx')" in source  # Strip ORT's bundled demo graphs as well.
     assert 'HEALTHCHECK' in source and "'/health'" in source
     assert 'HF_HUB_DISABLE_XET=1' in source
@@ -74,7 +75,7 @@ def test_dockerignore_covers_sensitive_build_context():
 @pytest.mark.skipif(os.getenv('RUN_HYBRID_DOCKER_TESTS')!='1',reason='Real Docker audit requires explicit opt-in and a prebuilt image')
 def test_real_prebuilt_hybrid_image():
     from scripts.check_hybrid_docker import check_image
-    result=check_image(os.getenv('HYBRID_TEST_IMAGE','tomatocare-hybrid:phase7a'))
+    result=check_image(os.getenv('HYBRID_TEST_IMAGE','tomatocare-hybrid:phase7b'))
     assert result['audit']['runtime_imports']=='passed'
     assert result['no_model_http_smoke']=={'health':503,'predict':503}
 

@@ -1,4 +1,4 @@
-FROM python:3.12-slim
+FROM python:3.12.16-slim-trixie@sha256:1148dbb014615300fa7e713b2f94f550c0d1c69780c0805f84f093ceee34dd0b
 
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -13,14 +13,15 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     HF_HUB_DISABLE_TELEMETRY=1
 
 # Public Python dependencies only. Never download the private model at build time.
-COPY --chmod=644 hybrid_backend/requirements.txt /app/hybrid_backend/requirements.txt
+COPY --chmod=644 hybrid_backend/requirements.lock.txt /app/hybrid_backend/requirements.lock.txt
 # Optional public proxy CA is mounted ephemerally; normal builds use system trust.
 RUN --mount=type=secret,id=pip_ca,required=false \
     if [ -f /run/secrets/pip_ca ]; then \
-        pip install --no-cache-dir --no-compile --cert /run/secrets/pip_ca -r /app/hybrid_backend/requirements.txt; \
+        pip install --no-cache-dir --no-compile --require-hashes --only-binary=:all: --cert /run/secrets/pip_ca -r /app/hybrid_backend/requirements.lock.txt; \
     else \
-        pip install --no-cache-dir --no-compile -r /app/hybrid_backend/requirements.txt; \
+        pip install --no-cache-dir --no-compile --require-hashes --only-binary=:all: -r /app/hybrid_backend/requirements.lock.txt; \
     fi \
+    && python -m pip check \
     && python -c "import site,pathlib; [p.unlink() for root in site.getsitepackages() for p in pathlib.Path(root).rglob('*.onnx')]" \
     && groupadd --gid 10001 tomatocare \
     && useradd --uid 10001 --gid 10001 --create-home tomatocare

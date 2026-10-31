@@ -148,6 +148,30 @@ def bootstrap_private_bundle(repo, revision, token, expected_sha256, model_dir):
         raise BootstrapError("Private artifact staging/verification failed; check writable ephemeral storage") from None
 
 
+def _runtime_token():
+    """Read an optional runtime secret without persisting/logging its contents.
+
+    Explicit conflicting sources fail closed; local bundle mode never calls this.
+    Compose mounts an environment-backed secret at /run/secrets/hf_token.
+    """
+    token, filename = os.getenv("HF_TOKEN"), os.getenv("HF_TOKEN_FILE")
+    if not filename:
+        return token
+    if token:
+        raise BootstrapError("Set only one of HF_TOKEN and HF_TOKEN_FILE")
+    try:
+        with open(filename, "rb") as stream:
+            payload = stream.read(4097)
+        if len(payload) > 4096:
+            raise ValueError()
+        token = payload.decode("utf-8").strip()
+        if not token or any(char.isspace() for char in token):
+            raise ValueError()
+    except Exception:
+        raise BootstrapError("HF_TOKEN_FILE must be a readable, nonempty UTF-8 token file (maximum 4096 bytes)") from None
+    return token
+
+
 def resolve_hybrid_model_dir():
     repo = os.getenv("HYBRID_HF_REPO", "")
     if not repo:
@@ -171,7 +195,7 @@ def resolve_hybrid_model_dir():
                 raise BootstrapError("Local trusted-hash verification failed") from None
         return Path(directory)
     return bootstrap_private_bundle(
-        repo, os.getenv("HYBRID_HF_REVISION"), os.getenv("HF_TOKEN"),
+        repo, os.getenv("HYBRID_HF_REVISION"), _runtime_token(),
         os.getenv("HYBRID_EXPECTED_ONNX_SHA256"),
         os.getenv("HYBRID_MODEL_DIR") or "/tmp/tomatocare-hybrid",
     )

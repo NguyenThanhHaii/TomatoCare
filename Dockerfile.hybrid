@@ -1,0 +1,41 @@
+FROM python:3.12-slim
+
+WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=8000 \
+    CPU_THREADS=1 \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    HF_HOME=/tmp/huggingface \
+    HF_HUB_DISABLE_XET=1 \
+    HF_HUB_DISABLE_PROGRESS_BARS=1 \
+    HF_HUB_DISABLE_TELEMETRY=1
+
+# Public Python dependencies only. Never download the private model at build time.
+COPY --chmod=644 hybrid_backend/requirements.txt /app/hybrid_backend/requirements.txt
+# Optional public proxy CA is mounted ephemerally; normal builds use system trust.
+RUN --mount=type=secret,id=pip_ca,required=false \
+    if [ -f /run/secrets/pip_ca ]; then \
+        pip install --no-cache-dir --no-compile --cert /run/secrets/pip_ca -r /app/hybrid_backend/requirements.txt; \
+    else \
+        pip install --no-cache-dir --no-compile -r /app/hybrid_backend/requirements.txt; \
+    fi \
+    && python -c "import site,pathlib; [p.unlink() for root in site.getsitepackages() for p in pathlib.Path(root).rglob('*.onnx')]" \
+    && groupadd --gid 10001 tomatocare \
+    && useradd --uid 10001 --gid 10001 --create-home tomatocare
+
+# Explicit runtime allowlist: no training code, vendor model, datasets, notebooks or tests.
+# Baseline helpers are copied only because Hybrid reuses their image/body validation.
+COPY --chmod=644 hybrid_backend/__init__.py hybrid_backend/main.py /app/hybrid_backend/
+COPY --chmod=644 backend/__init__.py backend/main.py /app/backend/
+COPY --chmod=644 tomatocare/__init__.py tomatocare/inference.py tomatocare/hybrid_onnx.py tomatocare/hybrid_bootstrap.py /app/tomatocare/
+COPY --chmod=644 docs/third-party/DINOv3-LICENSE.md /app/licenses/DINOv3-LICENSE.md
+
+RUN chmod 755 /app/hybrid_backend /app/backend /app/tomatocare /app/licenses
+
+USER 10001:10001
+EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=5s --start-period=300s --retries=3 \
+    CMD ["python", "-c", "import os,urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('PORT','8000') + '/health', timeout=3).close()"]
+CMD ["sh", "-c", "exec uvicorn hybrid_backend.main:app --host 0.0.0.0 --port \"${PORT:-8000}\" --workers 1"]

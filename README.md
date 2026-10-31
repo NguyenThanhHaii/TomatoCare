@@ -168,3 +168,7 @@ Optional remote startup reads exactly three artifacts from `ThanhHai25/TomatoCar
 Remote `/health` stays 503 during initialization and becomes ready only after model validation/session creation. Legacy Phase 5 local behavior remains supported. Seven lightweight runtime dependencies include HF Hub; no Torch or Transformers is required. Production, frontend, main and `render.yaml` remain unchanged.
 
 See [Private bootstrap/token/revision/Render/Kaggle instructions](docs/hybrid-phase6-private-bootstrap.md), separate unapplied `render.hybrid.yaml`, and `scripts/check_private_hybrid_api.py`. The owner has now confirmed 12-image parity and real Uvicorn results (240.07 MB peak RSS, 180.18 ms mean HTTP latency) on Kaggle. Those do not independently verify this new authenticated cold-start path or Render Free resource limits. No token/private artifact is available in Codex; real private bootstrap is pending authorized Kaggle testing. No service creation, model upload, main merge or deployment is performed here.
+
+## Phase 7A — Hybrid Docker packaging
+
+Build the independent experimental API with `docker build -f Dockerfile.hybrid -t tomatocare-hybrid:phase7a .`. Python 3.12 slim, nonroot, one worker, no Torch/Transformers or baked weights/secrets. Private model configuration is supplied only at container runtime. See [Docker build/run, PowerShell, image audit and PDF evidence guide](docs/hybrid-docker.md). No CI/CD, Docker Hub publication or deployment is performed in this phase.

@@ -1,0 +1,83 @@
+{
+  "scope": "In-process TestClient + synthetic fixture only; no remote targets",
+  "generated_at_utc": "2026-11-15T07:30:23.725050+00:00",
+  "pytest_exit_code": 0,
+  "assessment_counts": {
+    "ATTACK_BLOCKED": 7,
+    "WEAKNESS_FOUND": 1,
+    "NOT_RUN": 1,
+    "INCONCLUSIVE": 1
+  },
+  "scenarios": [
+    {
+      "code": "A01",
+      "attack": "File quá lớn",
+      "actual": "Baseline: 413; Hybrid: 413; 1 request/API, 10 MiB + 1 byte",
+      "assessment": "ATTACK_BLOCKED",
+      "defense": "Giữ byte-limit trước multipart và sau upload; thêm giới hạn body tại reverse proxy"
+    },
+    {
+      "code": "A02",
+      "attack": "Decompression bomb",
+      "actual": "Baseline: 422; Hybrid: 422; header <128 bytes, 100M pixels khai báo; không load pixels",
+      "assessment": "ATTACK_BLOCKED",
+      "defense": "Giữ pixel-limit/Pillow bomb checks; timeout và memory isolation khi decode"
+    },
+    {
+      "code": "A03",
+      "attack": "Giả định dạng/MIME",
+      "actual": "Baseline/leaf.exe/image/png: 415; Baseline/leaf.png/image/gif: 415; Baseline/leaf.png/image/png: 422; Hybrid/leaf.exe/image/png: 415; Hybrid/leaf.png/image/gif: 415; Hybrid/leaf.png/image/png: 422",
+      "assessment": "ATTACK_BLOCKED",
+      "defense": "Kiểm tra extension + MIME + định dạng decoder; không tin tên file hoặc Content-Type riêng lẻ"
+    },
+    {
+      "code": "A04",
+      "attack": "Ảnh hỏng/cắt/dữ liệu bất thường",
+      "actual": "Baseline: 422; Baseline: 422; Baseline: 422; Hybrid: 422; Hybrid: 422; Hybrid: 422; health vẫn 200",
+      "assessment": "ATTACK_BLOCKED",
+      "defense": "Giữ decode/load bắt buộc, exception boundary, cập nhật Pillow định kỳ"
+    },
+    {
+      "code": "A05",
+      "attack": "Origin không được phép",
+      "actual": "Baseline: preflight 400, direct POST 200 nhưng không có Allow-Origin; Hybrid: preflight 400, direct POST 200 nhưng không có Allow-Origin",
+      "assessment": "ATTACK_BLOCKED",
+      "defense": "CORS chặn quyền đọc của browser, KHÔNG là xác thực; cần auth/token riêng cho API nếu cần hạn chế người gọi"
+    },
+    {
+      "code": "A06",
+      "attack": "Quá tải đồng thời mức nhỏ",
+      "actual": "Baseline: 1 in-flight thành công, 2 request khi bận trả 429; Hybrid: 1 in-flight thành công, 2 request khi bận trả 429",
+      "assessment": "ATTACK_BLOCKED",
+      "defense": "Admission lock chặn đồng thời; KHÔNG chứng minh rate limiting; thêm quota/rate limit và proxy timeout"
+    },
+    {
+      "code": "A07",
+      "attack": "Truy vấn lặp / nguy cơ sao chép hành vi",
+      "actual": "Baseline: 5/5 truy vấn tuần tự nhận 200 và đủ 4 xác suất; Hybrid: 5/5 truy vấn tuần tự nhận 200 và đủ 4 xác suất; không huấn luyện bản sao, không chứng minh extraction thành công hoặc vắng mọi rate limit",
+      "assessment": "INCONCLUSIVE",
+      "defense": "Nếu API mở: auth, quota theo tài khoản/IP, giám sát truy vấn; cân nhắc giảm chi tiết xác suất theo nhu cầu"
+    },
+    {
+      "code": "A08",
+      "attack": "Lộ thông tin khi lỗi",
+      "actual": "Baseline/startup: response leak=True, log leak=True; Baseline/inference: response leak=False, log leak=True; Hybrid/startup: response leak=True, log leak=True; Hybrid/inference: response leak=False, log leak=False; chỉ canary giả, không secret thật",
+      "assessment": "WEAKNESS_FOUND",
+      "defense": "Trả lỗi chung + error ID; redaction exception/log; không echo str(exc), giới hạn quyền đọc logs"
+    },
+    {
+      "code": "A09",
+      "attack": "Ảnh đối kháng giới hạn",
+      "actual": "Chưa có artifact/ảnh thật tại Codex; chỉ chuẩn bị script Kaggle",
+      "assessment": "NOT_RUN",
+      "defense": "Adversarial evaluation, kiểm tra miền dữ liệu và cơ chế từ chối khi bất định"
+    },
+    {
+      "code": "A10",
+      "attack": "Thay đổi model trái phép (bản sao fixture)",
+      "actual": "Model đổi: SHA-256 mismatch; model+manifest cùng đổi: trusted hash từ chối; session chưa tạo; chỉ tmp fixture giả bị sửa",
+      "assessment": "ATTACK_BLOCKED",
+      "defense": "Pin trusted expected SHA ngoài bundle, immutable revision, quyền file read-only; hash manifest tự thân không chống thay đồng thời manifest/model"
+    }
+  ]
+}

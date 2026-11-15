@@ -1,0 +1,21 @@
+{
+  "generated_at_utc": "2026-11-15T07:21:16.805328+00:00",
+  "code": "A09",
+  "assessment": "NOT_RUN",
+  "execution_status": "NOT_RUN",
+  "settings": {
+    "seed": 2026,
+    "epsilon_uint8": 8,
+    "step_uint8": 2,
+    "queries_per_image": 8,
+    "max_images": 4,
+    "max_total_queries": 36,
+    "max_pixels_per_image": 1000000,
+    "method": "score-guided random low-frequency sign search (untargeted)",
+    "success": "original correct AND perturbed prediction != ground truth; Linf RGB <= 8/255"
+  },
+  "total_queries": 0,
+  "images": [],
+  "reason": "Real local model, manifest, frozen Test selection and original data are required",
+  "exit_code": 2
+}

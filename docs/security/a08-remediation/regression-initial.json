@@ -1,0 +1,13 @@
+{
+  "passed": 90,
+  "failed": 5,
+  "skipped": 0,
+  "note": "First regression after the fix: five assertions expected old public diagnostic text. HTTP statuses were still correct. Updated only those assertions to generic safe-code contract; no test removed.",
+  "failed_tests": [
+    "tests/test_api.py::test_unavailable_model_fails_without_fallback",
+    "tests/test_hybrid_bootstrap.py::test_startup_403_health_safe",
+    "tests/test_hybrid_bootstrap.py::test_unknown_remote_startup_error_is_redacted",
+    "tests/test_hybrid_bootstrap.py::test_api_startup_with_unreadable_secret_file_is_503",
+    "tests/test_hybrid_onnx.py::test_missing_artifact_never_produces_mock"
+  ]
+}

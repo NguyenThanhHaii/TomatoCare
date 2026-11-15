@@ -19,6 +19,11 @@ MAX_BYTES = 10 * 1024 * 1024
 Image.MAX_IMAGE_PIXELS = 20_000_000
 logger = logging.getLogger(__name__)
 
+# Public messages are source-controlled: never interpolate exception objects.
+MODEL_UNAVAILABLE_DETAIL = "Model is unavailable. Please retry later. [TC_MODEL_INIT_FAILED]"
+PREDICTION_FAILED_DETAIL = "Prediction could not be completed. Please retry later. [TC_PREDICTION_FAILED]"
+INVALID_IMAGE_DETAIL = "Invalid JPG/PNG image or unsafe dimensions in pixels. [TC_INVALID_IMAGE]"
+
 
 class BodyLimitMiddleware:
     """Bound multipart parsing as well as the final uploaded file size."""
@@ -67,8 +72,8 @@ def decode_image(payload):
                     raise ValueError("Image dimensions exceed the safe 20 megapixel limit")
                 original.load()
                 return ImageOps.exif_transpose(original).convert("RGB")
-    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning) as exc:
-        raise HTTPException(422, f"Invalid image: {exc}") from exc
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, Image.DecompressionBombWarning):
+        raise HTTPException(422, INVALID_IMAGE_DETAIL) from None
 
 
 def create_app(predictor_factory=load_predictor):
@@ -78,9 +83,9 @@ def create_app(predictor_factory=load_predictor):
         app.state.model_error = None
         try:
             app.state.predictor = await run_in_threadpool(predictor_factory)
-        except Exception as exc:
-            app.state.model_error = str(exc)
-            logger.error("Model initialization failed: %s", exc)
+        except Exception:
+            app.state.model_error = MODEL_UNAVAILABLE_DETAIL
+            logger.error("Model initialization failed [TC_MODEL_INIT_FAILED]")
         yield
         app.state.predictor = None
 
@@ -127,14 +132,19 @@ def create_app(predictor_factory=load_predictor):
                     raise HTTPException(413, "Image exceeds the 10 MB limit")
                 image = await run_in_threadpool(decode_image, payload)
                 try:
-                    return await run_in_threadpool(app.state.predictor.predict, image)
+                    try:
+                        return await run_in_threadpool(app.state.predictor.predict, image)
+                    except Exception:
+                        # Even an HTTPException from the model is not trusted input.
+                        logger.error("Prediction failed [TC_PREDICTION_FAILED]")
+                        raise HTTPException(503, PREDICTION_FAILED_DETAIL) from None
                 finally:
                     image.close()
             except HTTPException:
                 raise
-            except Exception as exc:
-                logger.exception("Inference failed")
-                raise HTTPException(503, "Prediction failed; please retry or contact the service maintainer") from exc
+            except Exception:
+                logger.error("Prediction failed [TC_PREDICTION_FAILED]")
+                raise HTTPException(503, PREDICTION_FAILED_DETAIL) from None
             finally:
                 admission.release()
         finally:

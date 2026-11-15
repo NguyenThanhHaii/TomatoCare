@@ -1,0 +1,2 @@
+﻿test,outcome
+tests/a08/test_a08_remediation.py::test_A08_same_fault_injection,PASS

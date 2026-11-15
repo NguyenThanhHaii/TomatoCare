@@ -12,7 +12,8 @@ from starlette.concurrency import run_in_threadpool
 from starlette.responses import JSONResponse
 
 # Reuse baseline validation only; its app lifespan is NOT started by this import.
-from backend.main import BodyLimitMiddleware, MAX_BYTES, decode_image
+from backend.main import (BodyLimitMiddleware, MAX_BYTES, decode_image,
+                          MODEL_UNAVAILABLE_DETAIL, PREDICTION_FAILED_DETAIL)
 from tomatocare.hybrid_onnx import load_hybrid_predictor
 
 logger = logging.getLogger(__name__)
@@ -23,11 +24,11 @@ def create_app(predictor_factory=load_hybrid_predictor):
         try:
             app.state.predictor = await run_in_threadpool(predictor_factory)
             app.state.error = None
-        except Exception as exc:
-            from tomatocare.hybrid_bootstrap import BootstrapError
-            detail = str(exc) if isinstance(exc, BootstrapError) or not os.getenv("HYBRID_HF_REPO") else "Private model initialization failed; check service configuration"
-            app.state.error = f"Hybrid model unavailable: {detail}"
-            logger.error("%s", app.state.error)
+        except Exception:
+            # Local and remote failures follow the same public/logging boundary.
+            # Exception subclasses (including BootstrapError) may carry private data.
+            app.state.error = MODEL_UNAVAILABLE_DETAIL
+            logger.error("Hybrid model initialization failed [TC_MODEL_INIT_FAILED]")
     @asynccontextmanager
     async def lifespan(app):
         app.state.predictor, app.state.error = None, "Hybrid model initializing"
@@ -88,14 +89,18 @@ def create_app(predictor_factory=load_hybrid_predictor):
                 try:
                     if max(image.size) > 8192:
                         raise HTTPException(422, "Image side exceeds experimental 8192-pixel limit")
-                    return await run_in_threadpool(app.state.predictor.predict, image)
+                    try:
+                        return await run_in_threadpool(app.state.predictor.predict, image)
+                    except Exception:
+                        logger.error("Hybrid prediction failed [TC_PREDICTION_FAILED]")
+                        raise HTTPException(503, PREDICTION_FAILED_DETAIL) from None
                 finally:
                     image.close()
             except HTTPException:
                 raise
             except Exception:
-                logger.error("Hybrid inference failed; no request/SDK exception details are logged")
-                raise HTTPException(503, "Hybrid inference failed; inspect model/manifest compatibility") from None
+                logger.error("Hybrid prediction failed [TC_PREDICTION_FAILED]")
+                raise HTTPException(503, PREDICTION_FAILED_DETAIL) from None
             finally:
                 busy.release()
         finally:

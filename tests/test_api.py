@@ -81,7 +81,8 @@ def test_unavailable_model_fails_without_fallback():
         assert client.get("/health").status_code == 503
         response = client.post("/predict", files={"file": ("leaf.png", photo(), "image/png")})
         assert response.status_code == 503
-        assert "checkpoint download blocked" in response.json()["detail"]
+        assert "TC_MODEL_INIT_FAILED" in response.json()["detail"]
+        assert "checkpoint download blocked" not in response.text
 
 
 def test_cors_explicit_origin(monkeypatch):

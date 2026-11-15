@@ -1,0 +1,14 @@
+﻿test,outcome
+tests/a08/test_a08_remediation.py::test_A08_same_fault_injection,PASS
+tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[runtime-baseline],PASS
+tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[runtime-hybrid_local],PASS
+tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[runtime-hybrid_remote],PASS
+tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[bootstrap-baseline],PASS
+tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[bootstrap-hybrid_local],PASS
+tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[bootstrap-hybrid_remote],PASS
+tests/a08/test_a08_remediation.py::test_inference_error_is_safe_and_service_recovers[runtime-Baseline],PASS
+tests/a08/test_a08_remediation.py::test_inference_error_is_safe_and_service_recovers[runtime-Hybrid],PASS
+tests/a08/test_a08_remediation.py::test_inference_error_is_safe_and_service_recovers[http-Baseline],PASS
+tests/a08/test_a08_remediation.py::test_inference_error_is_safe_and_service_recovers[http-Hybrid],PASS
+tests/a08/test_a08_remediation.py::test_decode_error_does_not_echo_decoder_exception,PASS
+tests/a08/test_a08_remediation.py::test_normal_prediction_contract_unchanged,PASS

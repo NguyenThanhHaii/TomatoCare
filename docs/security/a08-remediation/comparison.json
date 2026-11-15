@@ -1,0 +1,46 @@
+{
+  "before_file": "before-run/results.json",
+  "after_file": "after-full-regression/results.json",
+  "before_sha256": "c24bc8b40ee4a74d670f567a8c513cadda1ed7da7a50b389bb486f29b76c70fd",
+  "after_sha256": "4f355e957e68c7bf0c4f9a54828d0cac8b508808f6cbd97c55498fb50473cdd0",
+  "before_assessment": "WEAKNESS_FOUND",
+  "after_assessment": "ATTACK_BLOCKED",
+  "rows": [
+    {
+      "issue": "Baseline khởi tạo local",
+      "before": "Response: có lộ; log: có lộ",
+      "after": "Response: không lộ; log: không lộ",
+      "conclusion": "Đã khắc phục trong probe"
+    },
+    {
+      "issue": "Baseline suy luận lỗi",
+      "before": "Response: không lộ; log: có lộ",
+      "after": "Response: không lộ; log: không lộ",
+      "conclusion": "Đã khắc phục trong probe"
+    },
+    {
+      "issue": "Hybrid khởi tạo local",
+      "before": "Response: có lộ; log: có lộ",
+      "after": "Response: không lộ; log: không lộ",
+      "conclusion": "Đã khắc phục trong probe"
+    },
+    {
+      "issue": "Hybrid suy luận lỗi",
+      "before": "Response: không lộ; log: không lộ",
+      "after": "Response: không lộ; log: không lộ",
+      "conclusion": "Duy trì xử lý an toàn"
+    },
+    {
+      "issue": "Trạng thái HTTP khi model/init hoặc suy luận lỗi",
+      "before": "503 trên 4 request của probe",
+      "after": "503 trên cùng 4 request",
+      "conclusion": "Không đổi trạng thái lỗi"
+    },
+    {
+      "issue": "Dự đoán JPG/PNG bình thường (test engine)",
+      "before": "T02 PASS trong bằng chứng đã lưu",
+      "after": "200; nhãn và softmax khớp giá trị chuẩn",
+      "conclusion": "Hợp đồng thành công giữ nguyên; không chạy lại AI thật"
+    }
+  ]
+}

@@ -30,6 +30,9 @@ def pytest_runtest_logreport(report):
 
 
 def pytest_sessionfinish(session, exitstatus):
+    # A08 remediation keeps all historical reports read-only; its reporter is separate.
+    if session.config.getoption('--a08-report-dir', default=None):
+        return
     if not OBSERVED:
         return
     out = Path(__file__).resolve().parents[2] / 'docs/security'

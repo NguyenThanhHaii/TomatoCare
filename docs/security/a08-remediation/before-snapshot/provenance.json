@@ -1,0 +1,9 @@
+{
+  "source_commit": "a586a0406557cbfb41f130230bdd3a40227bda1c",
+  "sha256": {
+    "docs/security/results.json": "ee9a6e2988b74d557af9b3c33f5c44544cfff64e5e65c1fa2f738cac12b7cd2d",
+    "docs/security/results.csv": "7966f924c5843c92de6fc5e71120079d22a4b35f0247c636912091ba260209e0",
+    "docs/security/summary.md": "651cc1fc4ab69e46d0d3c9fb831a6a10fcf8b19ed892884dba8c8766f3845385"
+  },
+  "note": "Exact pre-fix evidence, including historical assessments; not regenerated."
+}

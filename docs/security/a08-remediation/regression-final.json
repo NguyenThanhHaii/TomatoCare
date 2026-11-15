@@ -1,0 +1,12 @@
+{
+  "pytest_exit_code": 0,
+  "source": "pytest JUnit XML from all test files",
+  "counts": {
+    "tests": 191,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "passed": 188
+  },
+  "historical_reports_unchanged": true
+}

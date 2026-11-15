@@ -198,7 +198,7 @@ def test_startup_403_health_safe(monkeypatch, bundle, caplog):
     denied.response = SimpleNamespace(status_code=403)
     fake_hf(monkeypatch, bundle, denied)
     with TestClient(create_app()) as client:
-        response = wait_until(client, lambda r:"401/403" in r.text)
+        response = wait_until(client, lambda r:"TC_MODEL_INIT_FAILED" in r.text)
         assert response.status_code == 503
         assert SECRET not in response.text
     assert SECRET not in caplog.text
@@ -208,7 +208,7 @@ def test_unknown_remote_startup_error_is_redacted(monkeypatch, caplog):
     monkeypatch.setenv("HYBRID_HF_REPO", REPO)
     def fail(): raise RuntimeError(SECRET)
     with TestClient(create_app(fail)) as client:
-        response = wait_until(client, lambda r:"configuration" in r.text)
+        response = wait_until(client, lambda r:"TC_MODEL_INIT_FAILED" in r.text)
         assert response.status_code == 503 and SECRET not in response.text
     assert SECRET not in caplog.text
 
@@ -345,9 +345,10 @@ def test_api_startup_with_unreadable_secret_file_is_503(monkeypatch, bundle, tmp
     with TestClient(create_app()) as client:
         for _ in range(50):
             response = client.get('/health')
-            if 'HF_TOKEN_FILE' in response.text:
+            if 'TC_MODEL_INIT_FAILED' in response.text:
                 break
             time.sleep(0.01)
-        assert response.status_code == 503 and 'HF_TOKEN_FILE' in response.text
+        assert response.status_code == 503 and 'TC_MODEL_INIT_FAILED' in response.text
+        assert 'HF_TOKEN_FILE' not in response.text
         assert str(filename) not in response.text + caplog.text
         assert SECRET not in response.text + caplog.text

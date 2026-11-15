@@ -1,0 +1,12 @@
+{
+  "pytest_exit_code": 0,
+  "counts": {
+    "tests": 191,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "passed": 188
+  },
+  "prior_evidence_unchanged": true,
+  "safe_error_codes_required_in_logs": true
+}

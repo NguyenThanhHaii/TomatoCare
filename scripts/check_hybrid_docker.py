@@ -61,7 +61,7 @@ for route in ('health','predict'):
  except urllib.error.HTTPError as error:
   status=error.code;body=json.load(error)
  assert status==503, 'Without an artifact this must never claim model readiness'
- assert 'HYBRID_MODEL_DIR' in body.get('detail',''), 'Expected explicit missing model configuration'
+ assert 'TC_MODEL_INIT_FAILED' in body.get('detail',''), 'Expected safe unavailable-model diagnostic code'
  result[route]=status
 print(json.dumps(result))
 '''

@@ -1,0 +1,230 @@
+{
+  "phase": "after",
+  "generated_at_utc": "2026-11-15T08:11:21.727363+00:00",
+  "pytest_exit_code": 0,
+  "scope": "Offline TestClient with synthetic canary/path; no real token or model",
+  "assessment": "ATTACK_BLOCKED",
+  "test_counts": {
+    "PASS": 13,
+    "FAIL": 0,
+    "SKIP": 0
+  },
+  "primary_a08": {
+    "code": "A08",
+    "attack": "Lộ thông tin khi lỗi",
+    "actual": "Baseline/startup: response leak=False, log leak=False; Baseline/inference: response leak=False, log leak=False; Hybrid/startup: response leak=False, log leak=False; Hybrid/inference: response leak=False, log leak=False; chỉ canary giả, không secret thật",
+    "assessment": "ATTACK_BLOCKED",
+    "defense": "Trả lỗi chung + error ID; redaction exception/log; không echo str(exc), giới hạn quyền đọc logs"
+  },
+  "tests": [
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_A08_same_fault_injection",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_http": [
+            {
+              "method": "GET",
+              "path": "/health",
+              "status": 503
+            },
+            {
+              "method": "POST",
+              "path": "/predict",
+              "status": 503
+            },
+            {
+              "method": "GET",
+              "path": "/health",
+              "status": 503
+            },
+            {
+              "method": "POST",
+              "path": "/predict",
+              "status": 503
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[runtime-baseline]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_startup": {
+            "backend": "baseline",
+            "exception_kind": "runtime",
+            "status": 503,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[runtime-hybrid_local]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_startup": {
+            "backend": "hybrid_local",
+            "exception_kind": "runtime",
+            "status": 503,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[runtime-hybrid_remote]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_startup": {
+            "backend": "hybrid_remote",
+            "exception_kind": "runtime",
+            "status": 503,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[bootstrap-baseline]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_startup": {
+            "backend": "baseline",
+            "exception_kind": "bootstrap",
+            "status": 503,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[bootstrap-hybrid_local]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_startup": {
+            "backend": "hybrid_local",
+            "exception_kind": "bootstrap",
+            "status": 503,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_startup_safe_even_for_exception_subclasses[bootstrap-hybrid_remote]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_startup": {
+            "backend": "hybrid_remote",
+            "exception_kind": "bootstrap",
+            "status": 503,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_inference_error_is_safe_and_service_recovers[runtime-Baseline]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_inference": {
+            "backend": "Baseline",
+            "kind": "runtime",
+            "error_status": 503,
+            "recovery_status": 200,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_inference_error_is_safe_and_service_recovers[runtime-Hybrid]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_inference": {
+            "backend": "Hybrid",
+            "kind": "runtime",
+            "error_status": 503,
+            "recovery_status": 200,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_inference_error_is_safe_and_service_recovers[http-Baseline]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_inference": {
+            "backend": "Baseline",
+            "kind": "http",
+            "error_status": 503,
+            "recovery_status": 200,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_inference_error_is_safe_and_service_recovers[http-Hybrid]",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_inference": {
+            "backend": "Hybrid",
+            "kind": "http",
+            "error_status": 503,
+            "recovery_status": 200,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_decode_error_does_not_echo_decoder_exception",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_decode": {
+            "status": 422,
+            "response_leak": false,
+            "log_leak": false
+          }
+        }
+      ]
+    },
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_normal_prediction_contract_unchanged",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_normal": {
+            "jpg_png_status": 200,
+            "softmax_and_labels_unchanged": true
+          }
+        }
+      ]
+    }
+  ]
+}

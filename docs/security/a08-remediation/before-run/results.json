@@ -1,0 +1,51 @@
+{
+  "phase": "before",
+  "generated_at_utc": "2026-11-15T07:53:45.451510+00:00",
+  "pytest_exit_code": 0,
+  "scope": "Offline TestClient with synthetic canary/path; no real token or model",
+  "assessment": "WEAKNESS_FOUND",
+  "test_counts": {
+    "PASS": 1,
+    "FAIL": 0,
+    "SKIP": 0
+  },
+  "primary_a08": {
+    "code": "A08",
+    "attack": "Lộ thông tin khi lỗi",
+    "actual": "Baseline/startup: response leak=True, log leak=True; Baseline/inference: response leak=False, log leak=True; Hybrid/startup: response leak=True, log leak=True; Hybrid/inference: response leak=False, log leak=False; chỉ canary giả, không secret thật",
+    "assessment": "WEAKNESS_FOUND",
+    "defense": "Trả lỗi chung + error ID; redaction exception/log; không echo str(exc), giới hạn quyền đọc logs"
+  },
+  "tests": [
+    {
+      "test": "tests/a08/test_a08_remediation.py::test_A08_same_fault_injection",
+      "outcome": "PASS",
+      "observations": [
+        {
+          "a08_http": [
+            {
+              "method": "GET",
+              "path": "/health",
+              "status": 503
+            },
+            {
+              "method": "POST",
+              "path": "/predict",
+              "status": 503
+            },
+            {
+              "method": "GET",
+              "path": "/health",
+              "status": 503
+            },
+            {
+              "method": "POST",
+              "path": "/predict",
+              "status": 503
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

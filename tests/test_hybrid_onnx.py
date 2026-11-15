@@ -163,7 +163,8 @@ def test_missing_artifact_never_produces_mock(monkeypatch, tmp_path):
         assert client.get("/health").status_code == 503
         response = client.post("/predict", files={"file": ("leaf.png", photo(), "image/png")})
         assert response.status_code == 503
-        assert "Missing inference_manifest" in response.json()["detail"]
+        assert "TC_MODEL_INIT_FAILED" in response.json()["detail"]
+        assert "Missing inference_manifest" not in response.text and str(tmp_path) not in response.text
 
 
 def test_invalid_logits_fail_clearly(artifact):

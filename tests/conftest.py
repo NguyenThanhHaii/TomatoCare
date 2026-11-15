@@ -25,6 +25,9 @@ def pytest_runtest_logreport(report):
 
 
 def pytest_sessionfinish(session, exitstatus):
+    # A08 remediation keeps all historical reports read-only; its reporter is separate.
+    if session.config.getoption('--a08-report-dir', default=None):
+        return
     selected = {}
     for r in REPORTS:
         match = re.search(r'::test_(T0[1-8])_', r.nodeid)

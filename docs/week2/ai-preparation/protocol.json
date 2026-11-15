@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "seed": 42,
+  "split": "test",
+  "per_class": 10,
+  "selection": "sort paths; one representative per SHA-256; seeded sample per label ID",
+  "accuracy_min": 0.9,
+  "per_class_correct_min": 8,
+  "retention_min_each_variant": 0.9,
+  "variants": {
+    "brightness_080": {
+      "factor": 0.8
+    },
+    "brightness_120": {
+      "factor": 1.2
+    },
+    "jpeg_q70": {
+      "quality": 70,
+      "subsampling": 2,
+      "optimize": false,
+      "progressive": false
+    }
+  }
+}

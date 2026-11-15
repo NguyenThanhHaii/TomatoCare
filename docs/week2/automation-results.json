@@ -1,0 +1,82 @@
+{
+  "generated_at_utc": "2026-11-15T06:14:07.474846+00:00",
+  "pytest_exit_code": 0,
+  "execution_scope": "TestClient nội bộ, synthetic engines; không model Private hoặc API production",
+  "suite_totals": {
+    "passed": 164,
+    "failed": 0,
+    "skipped": 3
+  },
+  "cases": [
+    {
+      "code": "T01",
+      "description": "API sẵn sàng",
+      "expected": "Cả hai API: health 200, status ready",
+      "actual": "Baseline: HTTP 200, status=ready; Hybrid: HTTP 200, status=ready",
+      "status": "PASS"
+    },
+    {
+      "code": "T02",
+      "description": "Ảnh JPG/PNG hợp lệ",
+      "expected": "200; đúng schema, thứ tự 4 lớp và softmax logits mock",
+      "actual": "Baseline/jpg: HTTP 200; Baseline/png: HTTP 200; Hybrid/jpg: HTTP 200; Hybrid/png: HTTP 200",
+      "status": "PASS"
+    },
+    {
+      "code": "T03",
+      "description": "Ảnh hỏng/rỗng",
+      "expected": "422, không có dự đoán",
+      "actual": "Baseline/hỏng: HTTP 422; Baseline/rỗng: HTTP 422; Hybrid/hỏng: HTTP 422; Hybrid/rỗng: HTTP 422",
+      "status": "PASS"
+    },
+    {
+      "code": "T04",
+      "description": "File quá 10 MiB",
+      "expected": "413, không có dự đoán",
+      "actual": "Baseline: 10 MiB + 1 byte → HTTP 413; Hybrid: 10 MiB + 1 byte → HTTP 413",
+      "status": "PASS"
+    },
+    {
+      "code": "T05",
+      "description": "CORS và headers",
+      "expected": "Origin cho phép được chấp nhận; origin khác bị từ chối; no-store/nosniff",
+      "actual": "Baseline/CORS hợp lệ: HTTP 200; Baseline/CORS khác origin: HTTP 400; Hybrid/CORS hợp lệ: HTTP 200; Hybrid/CORS khác origin: HTTP 400; no-store và nosniff có trên health, predict thành công và lỗi",
+      "status": "PASS"
+    },
+    {
+      "code": "T06",
+      "description": "Mô hình không tải được",
+      "expected": "Health/predict 503, không fallback dự đoán",
+      "actual": "Baseline: HTTP 503; Baseline: HTTP 503; Hybrid: HTTP 503; Hybrid: HTTP 503",
+      "status": "PASS"
+    },
+    {
+      "code": "T07",
+      "description": "ONNX giả lập bị thay đổi",
+      "expected": "SHA-256 mismatch trước session; Hybrid health/predict 503",
+      "actual": "SHA-256 mismatch; session chưa tạo=True; health=503; predict=503",
+      "status": "PASS"
+    },
+    {
+      "code": "T08",
+      "description": "Logits NaN/Inf/sai shape",
+      "expected": "Cả hai API: 503; không trả nhãn hoặc xác suất",
+      "actual": "Baseline/NaN: HTTP 503; Hybrid/NaN: HTTP 503; Baseline/Inf: HTTP 503; Hybrid/Inf: HTTP 503; Baseline/sai shape: HTTP 503; Hybrid/sai shape: HTTP 503",
+      "status": "PASS"
+    },
+    {
+      "code": "T09",
+      "description": "Độ chính xác trên 40 ảnh Test thật",
+      "expected": "10 ảnh/lớp, seed 42; số đúng/sai, accuracy và từng lớp",
+      "actual": "Chưa có Hybrid ONNX và ảnh Test có nhãn thật trong workspace; không dùng mock để báo AI Test",
+      "status": "NOT_RUN"
+    },
+    {
+      "code": "T10",
+      "description": "Độ ổn định trên cùng 40 ảnh Test",
+      "expected": "Độ sáng 0.8/1.2, JPEG Q70; tỷ lệ giữ nhãn và các lần đổi nhãn",
+      "actual": "Chưa có Hybrid ONNX và ảnh Test có nhãn thật trong workspace; không dùng mock để báo AI Test",
+      "status": "NOT_RUN"
+    }
+  ]
+}
